@@ -1,0 +1,83 @@
+{\rtf1\ansi\ansicpg1252\cocoartf2577
+\cocoatextscaling0\cocoaplatform0{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+{\*\expandedcolortbl;;}
+\margl1440\margr1440\vieww16500\viewh16380\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\pardirnatural\partightenfactor0
+
+\f0\fs28 \cf0 ##This script takes the data available in the UCI HAR dataset and makes \
+## it tidy as well as subsets different activities that measure the mean\
+## and standard dev for each of the derived measurements.\
+\
+The dataset link is stored as \'91url\'92 and then called with download.file and called \'91uci_raw_data.zip\'92\
+\
+Remember that \'93download.file\'94 on a mac requires the method = \'93curl\'94 for any https:// sites\
+\
+The file is then unzipped with \'91unzip()\'92 and a new working directory is set as\
+UCI HAR Dataset with the setwd() function\
+\
+\'93xtest\'94 and \'93xtrain\'94 store \'91read.table\'92 on both the \'91X_test.txt\'92 and \'91X_train.txt\'92 files\
+respectively held in the subdirectories \'93test\'94 and \'93train\'94 folders  \
+\
+The 561 variables derived from the dataset were stored in \'93var_set\'94 using the\
+read.table command\
+\
+Several vectors are read in using read.table to store the subject reference number\
+called \'93sub_test\'94 and \'93sub_train\'94 and the experiment reference numbers called \'93acts_test\'94 and\
+\'93acts_train\'94\
+\
+The \'93test\'94 and \'93train\'94 sets (subjects, acts, and values) are then combined with the \
+rbind command and stored in \'93df_values\'94, \'93df_sub\'94, and \'93df_values\'94\
+\
+The larger dataset \'93df_values\'94 had no column headers in the raw data.  Therefore, the column names\
+for \'93df_values\'94 are needed.  \'93df_values_names\'94 stores a vector of the 2nd column from \'93var_set\'94\
+which contains each measured variable name.  Calling the \'93colnames\'94 function on \'93df_values\'94\
+assigns the \'93df_values_names\'94 as new column names for the \'93df_values\'94 data frame\
+\
+Both \'93df_sub\'94 and \'93df_acts\'94 have their column names reassigned using the \'93rename\'94 function.\
+df_sub$V1 is changed to \'93subject_id\'94  and df_acts$V1 is changed to \'93activities\'94 in order to make\
+these variable much more relevant and easy to understand.\
+\
+Once the column variable is changed, \'93df_acts\'94 is still a vector of numeric values.  For further clarity,\
+\'93df_acts\'94 using the dplyr package function \'93select()\'94 and \'93transmute()\'94 and \'93case_when\'94, the 2nd column\
+\'93activities\'94 was selected and each numeric value was replaced by a character string that represented the \
+experimental movement the \'93~\'94 is read as  \'93when the column value equals \'93#\'94 replace it with this\'94 \
+\
+This change also causes the column header to change to \'93case_when(\'85)\'94 and df_acts had to be renamed\
+as \'93actions\'94 using the rename() function again.  There is probably a much better way to run this particular section of the code but my experience is limited so I just made it work.\
+\
+\'93df_total\'94 stores the combined datasets of \'93df_sub\'94, \'93df_acts\'94, and \'93df_values\'94 in this order so it reads\
+\'93subject\'94 \'93experiment\'94 and \'93derived values\'94\
+\
+\'93df_mean_sd\'94 is a subset of the data using the select() function from dplyr package to only grab the following columns:  subject_id, actions, and any column that header contains either \'93mean()\'94 or \'93std() using the matches() function inside the select() function from dplyr\
+\
+A duplicate copy of the \'93df_mean_sd\'94 is stored as \'93df_temp\'94 using the data.frame() function\
+\
+Two subsets of the copied \'93df_temp\'94 are created called \'93df_actions_set\'94 and \'93df_subject_id_set\'94  These subsets were called using the pipe operator %>% again from the dplyr package.  Each step is \'93fed\'94 into the next step so that there is no need to called the data object.\
+\
+\'93df_temp\'94 is \'93group_by\'94 two different columns, \'93subject_id\'94 and \'93actions\'94 and \'93fed\'94 to the summarize() function.  The arguments for summarize use the across() function which tells summarize to include all columns of the data EXCEPT for the grouped columns.  The 2nd argument to across() is a function and in this case the average value (mean()) is found for every column for every subject\'92s experiments in one dataset called \'93df_subject_id_set\'94 and then the average of each experiment over all 30 volunteers in \'93df_actions_set\'94\
+\
+Both sets are written as csv files using the write.table() with each file placed inside the unzipped UCI HAR Dataset folder.\
+\
+The last command clears the global environment to remove any temporary datasets/vectors created during tidying\
+\
+the rm() function deletes any values, data listed inside.  the sequence makes a stored list of all things in the memory and then this list is removed.  gc() function is the garbage collection and used when significant data has been deleted as a final check. \
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+\
+}

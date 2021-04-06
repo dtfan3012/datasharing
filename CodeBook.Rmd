@@ -1,0 +1,112 @@
+---
+title: "CodeBook.md"
+author: "Christopher Patridge"
+date: "4/4/2021"
+output:
+  html_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+  The University of California at Irvine produced a dataset featuring the data collected from the movement sensors built into current smartphones.  The experiments involved attaching the phones to volunteers and having the volunteers perform a series of physical movements while recording the acceleration data in three axes (X,Y,Z) along with angular velocity (X,Y,Z).  The dataset is stored in a zipped folder.  The code below, retrieves the data and creates a directory to upzip the file to access the data.
+
+```{Get Get the UCI dataset, echo=TRUE}
+ setwd(getwd())
+ url <- "https://d396qusza40orc.cloudfront.net/getdata%2Fprojectfiles%2FUCI%20HAR%20Dataset.zip"
+  download.file(url, destfile = "./uci_raw_data.zip", method = "curl")
+  unzip("uci_raw_data.zip")
+  setwd("./UCI HAR Dataset")
+
+```
+
+The dataset is cleaned and two files are written with mean values for
+both the experiments of each volunteer and each experiment across volunteers
+The global environment is cleaned as a final step to remove any temporary data created during the running of the code.
+
+```{read several files inside the train and test folders}
+ xtest <- read.table("./test/X_test.txt", header = FALSE)
+  xtrain <- read.table("./train/X_train.txt", header = FALSE)
+  
+## read in the list of variables calculated totaling 561 names var_set   
+  var_set <- read.table("./features.txt", header = FALSE)
+
+## read in vectors for the subject_id for both train and test data
+  sub_test <- read.table("./test/subject_test.txt")
+  sub_train <- read.table("./train/subject_train.txt")
+  
+## read in vectors for test & train data numeric for
+## each of the 6 activities used for the experiment
+  acts_test <- read.table("./test/y_test.txt")
+  acts_train <- read.table("./train/y_train.txt")
+```
+
+The xtest & xtrain have their columns renamed using the vector from var_set.
+The datasets are rbind or cbind to complete one dataset with dimensions of 
+563 x 10299.
+
+```{datasets are bounded together with clearer variable names}
+ df_values <- rbind(xtest, xtrain)
+  df_sub <- rbind(sub_test, sub_train)
+  df_acts <- rbind(acts_test, acts_train)
+
+## Rename column for df_subs as 'subject_id'
+## Rename column for df_acts as 'activities'
+  df_values_names <- var_set$V2
+  colnames(df_values) <- df_values_names
+  
+  df_sub <- rename(df_sub, subject_id = V1)
+  
+  df_acts <- rename(df_acts, activities = V1)
+  
+  df_acts <- df_acts %>% 
+    select(activities) %>%
+    transmute(case_when(activities == 5 ~ "standing",
+                     activities == 4 ~ "sitting",
+                     activities == 3 ~ "walk_down",
+                     activities == 2 ~ "walk_up",
+                     activities == 1 ~ "walking",
+                     activities == 6 ~ "laying")
+    )
+  df_acts <- rename(df_acts, actions = `case_when(...)`)
+  
+## Finally the three sets are combined with a data.frame dim = 10299 x 563
+  
+  df_total <- cbind(df_sub, df_acts, df_values)
+```
+
+The last steps involve the cleaning selects columns for mean and sd.  Next the whole dataset is grouped by both "subject_id" = volunteer identity and "actions" = experiment movement.  The means for all selected variables are summarized and written to csv files for downfield analysis.
+```{select out the mean & sd and then group_by and summarize just mean values}
+df_mean_sd <- select(df_total, subject_id, actions, 
+                       matches("mean()"), matches("std()"))
+  
+## make an independent copy of dt_mean_sd to group_by subject or action
+  df_temp <- data.frame(df_mean_sd)
+  
+  df_actions_set <- df_temp %>%
+    group_by(actions, subject_id) %>%
+    summarize(across(everything(),mean)) %>% 
+    select(subject_id, matches("mean()"))
+    
+  df_subject_id_set <- df_temp %>%
+    group_by(subject_id, actions) %>%
+    summarize(across(everything(),mean)) %>% 
+    select(actions, matches("mean()"))
+
+## Both csv file below are written to the unzipped folder 
+## of the UCI dataset and they both contain headers  
+  write.table(df_actions_set, 
+              file = "./Actions Mean Summary.csv") 
+  write.table(df_subject_id_set, 
+              file = "./Subject's Mean Summary.csv")
+```
+
+The last line of code cleans out the global environment to keep a "tidy" environment as well.
+ 
+```{Sweep out the dataset made during tidying the dataset}
+## Clear environment with just the exported csv files
+ rm(list = ls()); gc()
+ 
